@@ -11,7 +11,7 @@
 
 ## Design of actual runtime
 
-- Links to vmvx design docs: 
+- Link to sample runtime: https://github.com/iree-org/iree/tree/main/runtime/src/iree/runtime/demo 
 
 - Choice of backend: cpu,gpu,vmvx?
 - Choice of implementation: simple_embedding, ...?
