@@ -2,12 +2,8 @@
 
 ## Prerequisites
 
-- IREE binaries installed
-- IREE compiler setup w/ built .vmfb files
-- v0.5a Bela image (Debian 11?)
-- Have compiled the simple embedding samples already
-- Tracy profiler
-
+- Have IREE Bela development environment setup, see bela-iree-container
+- Have models imported into MLIR - TODO: Link to docs
 
 ## Design of actual runtime
 
@@ -15,7 +11,7 @@
 
 - Choice of backend: cpu,gpu,vmvx?
 - Choice of implementation: simple_embedding, ...?
-- Features: dynamic shapes? statefulness?
+- Features: dynamic shapes? statefulness? considerations for sensor/actuator I/O?
 - Microkernels? How to 1: identify slow microkernels 2: implement new ones(How much work is this?)
 
 ## Perf analysis
