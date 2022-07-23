@@ -1,5 +1,14 @@
 # NOTE: not using bazel-to-cmake here because of the runtime unified rule.
 # We should figure out how to make bazel/cmake consistent with that.
+cmake_minimum_required(VERSION 3.23)
+project(BELA_IREE_RUNTIME)
+
+include(FetchContent)
+FetchContent_Declare(
+	iree
+	BINARY_DIR 
+FetchContent_MakeAvailable(iree)
+FetchContent_GetProperties(iree SOURCE_DIR IREE_SOURCE_DIR)
 
 iree_cc_binary(
   NAME
