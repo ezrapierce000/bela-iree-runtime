@@ -5,8 +5,10 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 #include <stdio.h>
-
+#include <Bela.h>
 #include "iree/runtime/api.h"
+
+#define IREE_RUNTIME_DEMO_LOAD_FILE_FROM_COMMAND_LINE_ARG
 
 static int iree_runtime_demo_main(void);
 static iree_status_t iree_runtime_demo_run_session(
