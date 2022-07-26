@@ -18,8 +18,12 @@ FetchContent_Declare(
 	SOURCE_DIR /home/iree/
 	)
 
+    list(APPEND CMAKE_MODULE_PATH "/home/iree/third_party/llvm-project/mlir/cmake/modules/")
+
 FetchContent_MakeAvailable(iree)
 FetchContent_GetProperties(iree SOURCE_DIR IREE_SOURCE_DIR)
+
+
 
 find_library(COBALT_LIB REQUIRED
     NAMES cobalt libcobalt
@@ -37,15 +41,15 @@ find_library(MATHNEON_LIB REQUIRED
 )
 
 
-list(APPEND CMAKE_MODULE_PATH "/home/iree/third_party/llvm-project/mlir/cmake/modules/")
+
 
 
 # Setting default IREE options
 set(IREE_BUILD_COMPILER OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
-set(CMAKE_TOOLCHAIN_FILE "/home/cmake/Toolchain.cmake")
-set(IREE_HOST_BINARY_ROOT "/opt/iree-host-build")
+# set(CMAKE_TOOLCHAIN_FILE "/home/cmake/Toolchain.cmake")
+set(IREE_HOST_BINARY_ROOT /opt/iree-host-build)
 set(IREE_DEVICE_SIZE "uint32_t")
 set(IREE_TARGET_BACKEND_DEFAULTS OFF)
 set(IREE_TARGET_BACKEND_DYLIB_LLVM_AOT ON)
