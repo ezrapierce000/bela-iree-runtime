@@ -10,13 +10,16 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-
+# Finding dependencies
 include(FetchContent)
 FetchContent_Declare(
 	iree
 	BINARY_DIR /opt/iree-device-build/
 	SOURCE_DIR /home/iree/
 	)
+
+FetchContent_MakeAvailable(iree)
+FetchContent_GetProperties(iree SOURCE_DIR IREE_SOURCE_DIR)
 
 find_library(COBALT_LIB REQUIRED
     NAMES cobalt libcobalt
@@ -32,16 +35,24 @@ find_library(MATHNEON_LIB REQUIRED
     NAMES mathneon libmathneon
     HINTS "/sysroot/usr/lib"
 )
-add_compile_definitions(DXENOMAI_SKIN_posix)
+
 
 list(APPEND CMAKE_MODULE_PATH "/home/iree/third_party/llvm-project/mlir/cmake/modules/")
 
+
+# Setting default IREE options
 set(IREE_BUILD_COMPILER OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(CMAKE_TOOLCHAIN_FILE "/home/cmake/Toolchain.cmake")
+set(IREE_HOST_BINARY_ROOT "/opt/iree-host-build")
+set(IREE_DEVICE_SIZE "uint32_t")
+set(IREE_TARGET_BACKEND_DEFAULTS OFF)
+set(IREE_TARGET_BACKEND_DYLIB_LLVM_AOT ON)
+set(IREE_HAL_DRIVER_DEFAULTS OFF)
+set(IREE_HAL_DRIVER_LOCAL_SYNC ON)
+set(IREE_HAL_EXECUTABLE_LOADER_EMBEDDED_ELF ON)
 
-FetchContent_MakeAvailable(iree)
-FetchContent_GetProperties(iree SOURCE_DIR IREE_SOURCE_DIR)
 
 set(_NAME "bela-iree-runtime")
 add_executable(${_NAME} "")
@@ -50,6 +61,9 @@ target_sources(${_NAME}
     "main.cpp"
     "render.cpp"
 )
+
+add_compile_definitions(DXENOMAI_SKIN_posix)
+
 set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "bela-iree-runtime")
 target_include_directories(${_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
