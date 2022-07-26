@@ -1,62 +1,76 @@
 # NOTE: not using bazel-to-cmake here because of the runtime unified rule.
 # We should figure out how to make bazel/cmake consistent with that.
 cmake_minimum_required(VERSION 3.23)
+#-------------------------------------------------------------------------------
+# Project configuration
+#-------------------------------------------------------------------------------
+
 project(BELA_IREE_RUNTIME)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 
 include(FetchContent)
 FetchContent_Declare(
 	iree
-	BINARY_DIR 
+	BINARY_DIR /opt/iree-device-build/
+	SOURCE_DIR /home/iree/
+	)
+
+find_library(COBALT_LIB REQUIRED
+    NAMES cobalt libcobalt
+    HINTS "/sysroot/usr/xenomai/lib"
+)
+
+find_library(NEON_LIB REQUIRED
+    NAMES NE10 libNE10
+    HINTS "/sysroot/usr/lib"
+)
+
+find_library(MATHNEON_LIB REQUIRED
+    NAMES mathneon libmathneon
+    HINTS "/sysroot/usr/lib"
+)
+add_compile_definitions(DXENOMAI_SKIN_posix)
+
+list(APPEND CMAKE_MODULE_PATH "/home/iree/third_party/llvm-project/mlir/cmake/modules/")
+
+set(IREE_BUILD_COMPILER OFF CACHE BOOL "" FORCE)
+set(IREE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(IREE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+
 FetchContent_MakeAvailable(iree)
 FetchContent_GetProperties(iree SOURCE_DIR IREE_SOURCE_DIR)
 
-iree_cc_binary(
-  NAME
-    hello_world_file
-  SRCS
-    "hello_world_explained.c"
-  DEFINES
-    "IREE_RUNTIME_DEMO_LOAD_FILE_FROM_COMMAND_LINE_ARG"
-  DEPS
-    iree::runtime::unified
+set(_NAME "bela-iree-runtime")
+add_executable(${_NAME} "")
+target_sources(${_NAME}
+  PRIVATE
+    "main.cpp"
+    "render.cpp"
+)
+set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "bela-iree-runtime")
+target_include_directories(${_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+)
+target_include_directories(${_NAME} PRIVATE /sysroot/root/Bela /sysroot/root/Bela/include)
+target_include_directories(${_NAME} PUBLIC /home/iree/)
+
+target_link_libraries(${_NAME}
+  iree_base_base
+  iree_base_tracing
+  iree_hal_hal
+  iree_runtime_runtime
+  /sysroot/root/Bela/lib/libbelafull.a
+  prussdrv
+  asound
+  atomic
+  sndfile
+  pthread
+  ${COBALT_LIB}
+  ${NEON_LIB}
+  ${MATH_NEON_LIB}
 )
 
-if(NOT IREE_HAL_EXECUTABLE_LOADER_VMVX_MODULE OR NOT IREE_TARGET_BACKEND_VMVX)
-  return()
-endif()
 
-iree_cc_binary(
-  NAME
-    hello_world_embedded
-  SRCS
-    "hello_world_explained.c"
-  DEFINES
-    "IREE_RUNTIME_DEMO_LOAD_FILE_FROM_EMBEDDED_DATA"
-  DEPS
-    iree::runtime::unified
-    iree::runtime::testdata::simple_mul_module_c
-)
-
-iree_native_test(
-  NAME
-    "hello_world_embedded_test"
-  SRC
-    ::hello_world_embedded
-)
-
-iree_cc_binary(
-  NAME
-    hello_world_terse
-  SRCS
-    "hello_world_terse.c"
-  DEPS
-    iree::runtime::unified
-    iree::runtime::testdata::simple_mul_module_c
-)
-
-iree_native_test(
-  NAME
-    "hello_world_terse_test"
-  SRC
-    ::hello_world_terse
-)
