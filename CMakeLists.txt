@@ -47,7 +47,8 @@ set(_NAME "bela-iree-runtime")
 add_executable(${_NAME} "")
 target_sources(${_NAME}
   PRIVATE
-    "runtime.cpp"
+    "main.cpp"
+    "render.cpp"
 )
 set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "bela-iree-runtime")
 target_include_directories(${_NAME} PUBLIC
@@ -68,6 +69,8 @@ target_link_libraries(${_NAME}
   sndfile
   pthread
   ${COBALT_LIB}
+  ${NEON_LIB}
+  ${MATH_NEON_LIB}
 )
 
 
