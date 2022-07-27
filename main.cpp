@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 	Bela_defaultSettings(settings);
 	settings->setup = iree_runtime_setup;
 	settings->render = iree_runtime_render;
-	settings->cleanup = cleanup;
+	settings->cleanup = iree_runtime_cleanup;
 	if(argc > 0 && argv[0])
 	{
 		settings->projectName = strrchr(argv[0], '/') + 1;
