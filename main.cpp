@@ -16,7 +16,7 @@
 using namespace std;
 
 
-extern "C"
+extern "C++"
 {
 bool iree_runtime_setup(BelaContext*, void*); // setup, return 1 for success, 0 for error
 void iree_runtime_render(BelaContext*, void*); // render
