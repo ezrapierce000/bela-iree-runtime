@@ -84,6 +84,12 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		},
 		/* initial data */ iree_make_const_byte_span(NULL, 1024), &output_hal_buffer_view));
 
+
+	iree_runtime_call_inputs_push_back_buffer_view(
+		&module_call, input_hal_buffer_view);
+
+	iree_vm_list_retain(module_call.inputs);
+	iree_vm_list_retain(module_call.outputs);
 	
 	// delete dynamically allocated lists in call then statically alocate them
 	/*
@@ -126,8 +132,7 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 void iree_runtime_render(BelaContext* context, void* userData){
 	//iree_vm_list_retain(module_call.inputs);
 	// iree_vm_list_t* inputs = iree_runtime_call_inputs(&module_call);
-	iree_runtime_call_inputs_push_back_buffer_view(
-	&module_call, input_hal_buffer_view);
+
 
 	// list and hal buffer view are NULL?
 	//
