@@ -1,12 +1,21 @@
 #include <Bela.h>
 #include <iree/runtime/api.h>
+#include "iree/base/api.h"
+#include "iree/hal/api.h"
+#include "iree/modules/hal/module.h"
+#include "iree/vm/api.h"
+#include "iree/vm/bytecode_module.h"
 
 // TODO: read this in via command line
-static const char* module_file_path = "/root/module.vmfb";
-static iree_runtime_instance_t* instance = NULL;
-static iree_runtime_session_t* session = NULL;
-static iree_hal_device_t* local_sync_device = NULL;
-static iree_vm_function_t* function = NULL;
+char* module_file_path = "/root/module.vmfb";
+iree_runtime_instance_t* instance = NULL;
+iree_runtime_session_t* session = NULL;
+iree_hal_device_t* local_sync_device = NULL;
+iree_hal_buffer_view_t* input_hal_buffer_view;
+iree_hal_buffer_view_t* output_hal_buffer_view;
+iree_hal_buffer_t* input_buffer;
+iree_runtime_call_t module_call;
+iree_hal_dim_t shape[2] = {1024, 1};
 
 
 
@@ -39,18 +48,14 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 	status = iree_runtime_session_create_with_device(
 		instance, &session_options, local_sync_device,
 		iree_runtime_instance_host_allocator(instance), &session);
-	iree_hal_device_release(local_sync_device);
+	//iree_hal_device_release(local_sync_device);
 
 	if (iree_status_is_ok(status)) {
     	status = iree_runtime_session_append_bytecode_module_from_file(session,
                                                                module_file_path);;
   	}
-/*
-	iree_runtime_call_t call;
-
 	IREE_RETURN_IF_ERROR(iree_runtime_call_initialize_by_name(
-		session, iree_make_cstring_view("module.main"), &call));
-*/
+		session, iree_make_cstring_view("module.main"), &module_call));
 
 	iree_hal_allocator_t* device_allocator =
 		iree_runtime_session_device_allocator(session);
@@ -58,59 +63,59 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		iree_runtime_session_host_allocator(session);
   	status = iree_ok_status();
 
-/*
-    // %arg0: tensor<4xf32>
-    iree_hal_buffer_view_t* arg0 = NULL;
-    if (iree_status_is_ok(status)) {
-      static const iree_hal_dim_t arg0_shape[2] = {1024, 1};
-      static const float arg0_data[1024] = {1.0f, 1.1f, 1.2f, 1.3f};
-      status = iree_hal_buffer_view_allocate_buffer(
-          device_allocator,
-          // Shape rank and dimensions:
-          IREE_ARRAYSIZE(arg0_shape), arg0_shape,
-          // Element type:
-          IREE_HAL_ELEMENT_TYPE_FLOAT_32,
-          // Encoding type:
-          IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
-          (iree_hal_buffer_params_t){
-              // Where to allocate (host or device):
-              .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL,
-              // Access to allow to this memory (this is .rodata so READ only):
-              .access = IREE_HAL_MEMORY_ACCESS_READ,
-              // Intended usage of the buffer (transfers, dispatches, etc):
-              .usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
-          },
-          // The actual heap buffer to wrap or clone and its allocator:
-          iree_make_const_byte_span(arg0_data, sizeof(arg0_data)),
-          // Buffer view + storage are returned and owned by the caller:
-          &arg0);
-    }
 
-    if (iree_status_is_ok(status)) {
-      IREE_IGNORE_ERROR(iree_hal_buffer_view_fprint(
-          stdout, arg0, 4096, host_allocator));
-      // Add to the call inputs list (which retains the buffer view).
-      status = iree_runtime_call_inputs_push_back_buffer_view(&call, arg0);
-    }
-    // Since the call retains the buffer view we can release it here.
-    iree_hal_buffer_view_release(arg0);
-*/
 
-/* lookup fucntion by name, save pointer to function, then call runtime_session_call from render
 
-	iree_runtime_session_lookup_function(
-    const iree_runtime_session_t* session, iree_string_view_t full_name,
-    iree_vm_function_t* out_function);
-*/
-	//iree_runtime_call_invoke(&call, /*flags=*/0);
-	//iree_rutime_session_call(session, )
-	// Dump the function outputs.
+	IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
+		iree_hal_device_allocator(local_sync_device), IREE_ARRAYSIZE(shape), shape,
+		IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
+		(iree_hal_buffer_params_t){
+			.type = IREE_HAL_MEMORY_TYPE_HOST_LOCAL,
+			.usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
+		},
+		/* initial data */ iree_make_const_byte_span(4, 1024), &input_hal_buffer_view));
 
-	iree_vm_function_t other;
-	iree_runtime_session_lookup_function(session, iree_make_cstring_view("module.main"),
-    &other);
+	IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
+		iree_hal_device_allocator(local_sync_device), IREE_ARRAYSIZE(shape), shape,
+		IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
+		(iree_hal_buffer_params_t){
+			.type = IREE_HAL_MEMORY_TYPE_HOST_LOCAL,
+			.usage = IREE_HAL_BUFFER_USAGE_DEFAULT,
+		},
+		/* initial data */ iree_make_const_byte_span(NULL, 1024), &output_hal_buffer_view));
+
 	
+	// delete dynamically allocated lists in call then statically alocate them
+	/*
+	iree_vm_list_release(module_call.inputs);
+	iree_vm_list_release(module_call.outputs);
 
+	iree_vm_type_def_t buffer_view_type_def =
+      iree_vm_type_def_make_ref_type(iree_hal_buffer_type_id());
+
+  	iree_byte_span_t input_list_storage = iree_make_byte_span(
+      	NULL, iree_vm_list_storage_size(&buffer_view_type_def, 1));
+  	IREE_RETURN_IF_ERROR(
+      	iree_vm_list_initialize(input_list_storage, &buffer_view_type_def,
+                              	1, &module_call.inputs));*/
+								
+/*
+	// adding allocated buffer to call inputs
+	// iree_vm_list_t* inputs = iree_runtime_call_inputs(&module_call);
+  	iree_vm_ref_t in_ref = {0};
+	IREE_RETURN_IF_ERROR(iree_vm_ref_wrap_assign(
+      	input_hal_buffer_view, iree_hal_buffer_view_type_id(), &in_ref));
+ 	iree_vm_list_push_ref_retain(module_call.inputs, &in_ref);
+	
+	iree_vm_ref_t out_ref = {0};
+	IREE_RETURN_IF_ERROR(iree_vm_ref_wrap_assign(
+      	output_hal_buffer_view, iree_hal_buffer_view_type_id(), &out_ref));
+ 	iree_vm_list_push_ref_retain(module_call.outputs, &out_ref);
+*/
+
+
+	
+	//iree_runtime_session_retain(session);
     fprintf(stdout, "\n * \n");
 
 	return true;
@@ -119,33 +124,20 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 
 
 void iree_runtime_render(BelaContext* context, void* userData){
-	static iree_vm_function_t other;
-	static bool lookup = false;
-	if(!lookup){
-		iree_runtime_session_lookup_function(session, iree_make_cstring_view("module.main"),
-		&other);
-		lookup = true;
-	}
+	//iree_vm_list_retain(module_call.inputs);
+	// iree_vm_list_t* inputs = iree_runtime_call_inputs(&module_call);
+	iree_runtime_call_inputs_push_back_buffer_view(
+	&module_call, input_hal_buffer_view);
 
+	// list and hal buffer view are NULL?
+	//
 
-	// Synchronously issues a generic function call.
-//
-// |input_list| is used to pass values and objects into the target function and
-// must match the signature defined by the compiled function. List ownership
-// remains with the caller.
-//
-// |output_list| is populated after the function completes execution with the
-// output values and objects of the function. List ownership remains with the
-// caller.
-//
-// Functions with either no inputs or outputs may provide NULL for the
-// respective list.
-/*
-IREE_API_EXPORT iree_status_t iree_runtime_session_call(
-    iree_runtime_session_t* session, const iree_vm_function_t* function,
-    iree_vm_list_t* input_list, iree_vm_list_t* output_list);
-	*/
-	iree_runtime_session_call(session, &other, NULL, NULL);
+	iree_hal_buffer_view_t* input_buffer_view = (iree_hal_buffer_view_t*)iree_vm_list_get_ref_deref(module_call.inputs, 0, iree_hal_buffer_view_get_descriptor());
+	//iree_hal_buffer_map_write(
+	//	iree_hal_buffer_view_buffer(input_buffer_view),
+	//	0, context->audioIn, context->audioFrames*4);
+	// iree_vm_list_release(module_call.inputs);
+
 }
 
 void iree_runtime_cleanup(BelaContext *context, void *userData){

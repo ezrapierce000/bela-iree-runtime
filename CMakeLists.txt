@@ -41,21 +41,18 @@ find_library(MATHNEON_LIB REQUIRED
 )
 
 
-
-
-
 # Setting default IREE options
 set(IREE_BUILD_COMPILER OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
-# set(CMAKE_TOOLCHAIN_FILE "/home/cmake/Toolchain.cmake")
-set(IREE_HOST_BINARY_ROOT /opt/iree-host-build)
-set(IREE_DEVICE_SIZE "uint32_t")
-set(IREE_TARGET_BACKEND_DEFAULTS OFF)
-set(IREE_TARGET_BACKEND_DYLIB_LLVM_AOT ON)
-set(IREE_HAL_DRIVER_DEFAULTS OFF)
-set(IREE_HAL_DRIVER_LOCAL_SYNC ON)
-set(IREE_HAL_EXECUTABLE_LOADER_EMBEDDED_ELF ON)
+# set(CMAKE_TOOLCHAIN_FILE /workspace/cmake/Toolchain.cmake CACHE STRING "" FORCE)
+# set(IREE_HOST_BINARY_ROOT /opt/iree-host-build CACHE STRING "" FORCE)
+set(IREE_DEVICE_SIZE uint32_t CACHE STRING "" FORCE)
+set(IREE_TARGET_BACKEND_DEFAULTS OFF CACHE BOOL "" FORCE)
+set(IREE_TARGET_BACKEND_DYLIB_LLVM_AOT ON CACHE BOOL "" FORCE)
+set(IREE_HAL_DRIVER_DEFAULTS OFF CACHE BOOL "" FORCE)
+set(IREE_HAL_DRIVER_LOCAL_SYNC ON CACHE BOOL "" FORCE)
+set(IREE_HAL_EXECUTABLE_LOADER_EMBEDDED_ELF ON CACHE BOOL "" FORCE)
 
 
 set(_NAME "bela-iree-runtime")
@@ -73,13 +70,14 @@ target_include_directories(${_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 target_include_directories(${_NAME} PRIVATE /sysroot/root/Bela /sysroot/root/Bela/include)
-target_include_directories(${_NAME} PUBLIC /home/iree/)
+target_include_directories(${_NAME} PUBLIC /workspace/iree/)
 
 target_link_libraries(${_NAME}
   iree_base_base
   iree_base_tracing
   iree_hal_hal
   iree_runtime_runtime
+  /sysroot/root/Bela/lib/libbela.a
   /sysroot/root/Bela/lib/libbelafull.a
   prussdrv
   asound
