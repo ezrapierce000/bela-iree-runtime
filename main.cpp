@@ -16,7 +16,7 @@
 using namespace std;
 
 
-extern "C++"
+extern "C"
 {
 bool iree_runtime_setup(BelaContext*, void*); // setup, return 1 for success, 0 for error
 void iree_runtime_render(BelaContext*, void*); // render
@@ -85,11 +85,12 @@ int main(int argc, char *argv[])
 	}
 
 	// Initialise the PRU audio device
-	if(Bela_initAudio(settings, 0) != 0) {
+	if(Bela_initAudio(settings, 0, 44100, 4.5) != 0) {
 		Bela_InitSettings_free(settings);
 		fprintf(stderr,"Error: unable to initialise audio\n");
 		return 1;
 	}
+
 	Bela_InitSettings_free(settings);
 
 	// Start the audio device running

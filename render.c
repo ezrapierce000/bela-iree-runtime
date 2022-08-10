@@ -9,7 +9,7 @@
 #define M_PI 3.14159
 
 // TODO: read this in via command line
-char* module_file_path = "/root/module.vmfb";
+const char* module_file_path = "/root/basic_mlp.vmfb";
 iree_runtime_instance_t* instance = NULL;
 iree_runtime_session_t* session = NULL;
 iree_hal_device_t* local_sync_device = NULL;
@@ -19,7 +19,7 @@ iree_hal_buffer_view_t* output_hal_buffer_view = NULL;
 
 // TODO: set this based on the input size of the model automatically?
 const uint32_t block_size = 1024;
-const iree_hal_dim_t shape[2] = {1024, 1};
+const iree_hal_dim_t shape[2] = {1, 1024};
 
 float gFrequency = 440.0;
 float gPhase;
@@ -74,7 +74,7 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		return false; // failed to load bytecode module
 	}
 	iree_runtime_call_initialize_by_name(
-		session, iree_make_cstring_view("module.main"), &module_call);
+		session, iree_make_cstring_view("module.forward"), &module_call);
 
 	if(!iree_status_is_ok(status)){
 		iree_status_fprint(stderr, status);
@@ -110,8 +110,13 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		&module_call, input_hal_buffer_view[0]);
 		
 
-	if((gIREETask = Bela_createAuxiliaryTask(&bela_iree_invoke, 90, "iree", NULL)) == 0)
+	if((gIREETask = Bela_createAuxiliaryTask(&bela_iree_invoke, 30, "iree", NULL)) == 0)
 		return false;
+
+	if(!iree_status_is_ok(status)){
+		iree_status_fprint(stderr, status);
+		return false;
+	}
 	
 	// run the model
 	status = iree_runtime_call_invoke(&module_call, /*flags*/0);
@@ -120,17 +125,22 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		return false;
 	}
 	
-  if (iree_status_is_ok(status)) {
-    // This prints the buffer view out but an application could read its
-    // contents, pass it to another call, etc.
-    //status = iree_hal_buffer_view_fprint(
-      //  stdout, ret0, /*max_element_count=*/4096, host_allocator);
-  }
+	if (iree_status_is_ok(status)) {
+		// This prints the buffer view out but an application could read its
+		// contents, pass it to another call, etc.
+		//status = iree_hal_buffer_view_fprint(
+		//  stdout, ret0, /*max_element_count=*/4096, host_allocator);
+	}
 
 	fprintf(stdout, "%d\n", iree_vm_list_size(module_call.outputs));
 	iree_runtime_call_outputs_pop_front_buffer_view(&module_call, &output_hal_buffer_view);
 	// read the output
 	// how to get output buffer??
+	status = iree_runtime_call_invoke(&module_call, /*flags*/0);
+	if(!iree_status_is_ok(status)){
+		iree_status_fprint(stderr, status);
+		return false;
+	}
 
 
     fprintf(stdout, "\n * \n");
@@ -143,7 +153,7 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 
 void test_sine(BelaContext* context){
 	for(unsigned int n = 0; n < context->audioFrames; n++) {
-		float out = 0.8f * sinf(gPhase);
+		float out = 0.1f * sinf(gPhase);
 		gPhase += 2.0f * (float)M_PI * gFrequency * gInverseSampleRate;
 		if(gPhase > M_PI)
 			gPhase -= 2.0f * (float)M_PI;
@@ -157,36 +167,35 @@ void test_sine(BelaContext* context){
 
 
 void iree_runtime_render(BelaContext* context, void* userData){
-	static bool inputBufferToggle = false; // denotes which buffer is being processed and which is being filled
-	static uint32_t bufferByteWriteCount = 0;
+	static bool input_buffer_toggle = false; // denotes which buffer is being processed and which is being filled
+	static uint32_t buffer_byte_write_count = 0;
 	iree_status_t status;
 	test_sine(context);
 
 	// once last call is done, toggle, swap buffers and invoke again
-	if((iree_vm_list_size(module_call.outputs) > 0) && (bufferByteWriteCount >= block_size)){ // if output is ready and previous buffer is all read out
+	if((iree_vm_list_size(module_call.outputs) > 0) && (buffer_byte_write_count >= block_size)){ // if output is ready and previous buffer is all read out
 		output_hal_buffer_view = NULL;
 		status = iree_runtime_call_outputs_pop_front_buffer_view(&module_call, &output_hal_buffer_view);
 		iree_runtime_call_reset(&module_call);
-		iree_runtime_call_inputs_push_back_buffer_view(&module_call, input_hal_buffer_view[inputBufferToggle]);
-		inputBufferToggle = ~inputBufferToggle;
-		bufferByteWriteCount = 0;
+		iree_runtime_call_inputs_push_back_buffer_view(&module_call, input_hal_buffer_view[input_buffer_toggle]);
+		input_buffer_toggle = ~input_buffer_toggle;
+		buffer_byte_write_count = 0;
 		Bela_scheduleAuxiliaryTask(gIREETask);
 		//rt_printf("toggle.\n");
 	}
-	else if(bufferByteWriteCount >= block_size){
-		return false; // model missed latency deadline
+	else if(buffer_byte_write_count >= block_size){
+		rt_printf("IREE module missed deadline, exiting...");
+		exit(0); // model missed latency deadline
 	}
 
 	// write data into preparation hal buffer for IREE
-	uint32_t dataTransferSize = min(block_size - bufferByteWriteCount, context->audioFrames);
-	status = iree_hal_buffer_map_write(iree_hal_buffer_view_buffer(input_hal_buffer_view[inputBufferToggle]),
-		bufferByteWriteCount, context->audioIn, dataTransferSize);
+	uint32_t data_transfer_size = min(block_size - buffer_byte_write_count, context->audioFrames);
+	status = iree_hal_buffer_map_write(iree_hal_buffer_view_buffer(input_hal_buffer_view[input_buffer_toggle]),
+		buffer_byte_write_count, context->audioIn, data_transfer_size);
 	// write data out from previous invocation
 	status = iree_hal_buffer_map_read(iree_hal_buffer_view_buffer(output_hal_buffer_view),
-		bufferByteWriteCount, context->audioOut, dataTransferSize);
-	bufferByteWriteCount += dataTransferSize;
-
-
+		buffer_byte_write_count, context->audioOut, data_transfer_size);
+	buffer_byte_write_count += data_transfer_size;
 }
 
 void bela_iree_invoke(){
@@ -194,8 +203,10 @@ void bela_iree_invoke(){
 }
 
 void iree_runtime_cleanup(BelaContext *context, void *userData){
+	iree_runtime_call_deinitialize(&module_call);
+	iree_hal_device_release(local_sync_device);
 	iree_runtime_instance_release(instance);
 	iree_runtime_session_release(session);
-	// TODO: release local-sync device?
+	
 }
 
