@@ -15,7 +15,7 @@ include(FetchContent)
 FetchContent_Declare(
 	iree
 	BINARY_DIR /opt/iree-device-build/
-	SOURCE_DIR /home/iree/
+	SOURCE_DIR /workspaces/bela-iree-container/iree
 	)
 
     list(APPEND CMAKE_MODULE_PATH "/home/iree/third_party/llvm-project/mlir/cmake/modules/")
@@ -45,8 +45,8 @@ find_library(MATHNEON_LIB REQUIRED
 set(IREE_BUILD_COMPILER OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(IREE_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
-# set(CMAKE_TOOLCHAIN_FILE /workspace/cmake/Toolchain.cmake CACHE STRING "" FORCE)
-# set(IREE_HOST_BINARY_ROOT /opt/iree-host-build CACHE STRING "" FORCE)
+set(CMAKE_TOOLCHAIN_FILE /workspaces/bela-iree-container/cmake/Toolchain.cmake CACHE STRING "" FORCE)
+set(IREE_HOST_BINARY_ROOT /opt/iree-host-build CACHE STRING "" FORCE)
 set(IREE_DEVICE_SIZE uint32_t CACHE STRING "" FORCE)
 set(IREE_TARGET_BACKEND_DEFAULTS OFF CACHE BOOL "" FORCE)
 set(IREE_TARGET_BACKEND_DYLIB_LLVM_AOT ON CACHE BOOL "" FORCE)
