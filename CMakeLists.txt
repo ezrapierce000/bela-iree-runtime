@@ -55,19 +55,17 @@ find_library(MATHNEON_LIB REQUIRED
 )
 
 
-
-
-
-
-
 set(_NAME "bela-iree-runtime")
 add_executable(${_NAME} "")
 target_sources(${_NAME}
   PRIVATE
     "main.cpp"
     "render.c"
+    "module.c"
 )
 
+add_compile_options(-march=armv7-a -mtune=cortex-a8 -mfloat-abi=hard -mfpu=neon -Wno-psabi)
+add_compile_options(-O3 -g -fPIC -ftree-vectorize -ffast-math)
 add_compile_definitions(DXENOMAI_SKIN_posix)
 
 set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "bela-iree-runtime")

@@ -13,6 +13,8 @@ const char* module_file_path = "/root/basic_mlp.vmfb";
 iree_runtime_instance_t* instance = NULL;
 iree_runtime_session_t* session = NULL;
 iree_hal_device_t* local_sync_device = NULL;
+iree_vm_instance_t* vm_instance = NULL;
+iree_vm_module_t* vm_module = NULL;
 iree_runtime_call_t module_call;
 iree_hal_buffer_view_t* input_hal_buffer_view[2];
 iree_hal_buffer_view_t* output_hal_buffer_view = NULL;
@@ -27,6 +29,8 @@ float gInverseSampleRate;
 
 AuxiliaryTask gIREETask;
 void bela_iree_invoke();
+
+extern iree_status_t module_create(iree_vm_instance_t*, iree_allocator_t, iree_vm_module_t**);
 
 
 
@@ -59,6 +63,12 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		return false; // failed to create device
 	}
 
+	iree_hal_allocator_t* device_allocator =
+		iree_runtime_session_device_allocator(session);
+  	iree_allocator_t host_allocator =
+		iree_runtime_session_host_allocator(session);
+  	status = iree_ok_status();
+
 	//setup session
 	iree_runtime_session_options_t session_options;
   	iree_runtime_session_options_initialize(&session_options);
@@ -67,8 +77,15 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		iree_runtime_instance_host_allocator(instance), &session);
 	iree_hal_device_release(local_sync_device);
 
-	status = iree_runtime_session_append_bytecode_module_from_file(session,
-                                                               module_file_path);;
+	status = module_create(vm_instance, host_allocator, &vm_module);
+	
+	if(!iree_status_is_ok(status)){
+		iree_status_fprint(stderr, status);
+		return false; // failed to load bytecode module
+	}
+
+	status = iree_runtime_session_append_module(session, vm_module);
+	
 	if(!iree_status_is_ok(status)){
 		iree_status_fprint(stderr, status);
 		return false; // failed to load bytecode module
@@ -81,11 +98,7 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		return false; // failed to initialize module function
 	}
 
-	iree_hal_allocator_t* device_allocator =
-		iree_runtime_session_device_allocator(session);
-  	iree_allocator_t host_allocator =
-		iree_runtime_session_host_allocator(session);
-  	status = iree_ok_status();
+
 
 	IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
 		iree_hal_device_allocator(local_sync_device), IREE_ARRAYSIZE(shape), shape,
