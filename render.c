@@ -6,6 +6,8 @@
 #include "iree/vm/api.h"
 #include "iree/vm/bytecode_module.h"
 
+#define EMITC_IMPLEMENTATION
+
 #define M_PI 3.14159
 
 // TODO: read this in via command line
@@ -30,7 +32,8 @@ float gInverseSampleRate;
 AuxiliaryTask gIREETask;
 void bela_iree_invoke();
 
-extern iree_status_t module_create(iree_vm_instance_t*, iree_allocator_t, iree_vm_module_t**);
+// extern iree_status_t module_create(iree_vm_instance_t*, iree_allocator_t, iree_vm_module_t**);
+extern iree_status_t linear_create(iree_vm_instance_t* v1, iree_allocator_t v2, iree_vm_module_t** v3);
 
 
 
@@ -52,7 +55,6 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		iree_status_fprint(stderr, status);
 		return false; // failed to create instance
 	}
-
 	//get local-sync device
 	IREE_RETURN_IF_ERROR(iree_runtime_instance_try_create_default_device(
 		instance, iree_make_cstring_view("local-sync"), &local_sync_device
@@ -63,10 +65,7 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		return false; // failed to create device
 	}
 
-	iree_hal_allocator_t* device_allocator =
-		iree_runtime_session_device_allocator(session);
-  	iree_allocator_t host_allocator =
-		iree_runtime_session_host_allocator(session);
+
   	status = iree_ok_status();
 
 	//setup session
@@ -77,8 +76,13 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		iree_runtime_instance_host_allocator(instance), &session);
 	iree_hal_device_release(local_sync_device);
 
-	status = module_create(vm_instance, host_allocator, &vm_module);
-	
+	iree_hal_allocator_t* device_allocator =
+		iree_runtime_session_device_allocator(session);
+  	iree_allocator_t host_allocator =
+		iree_runtime_session_host_allocator(session);
+
+	status = linear_create(vm_instance, host_allocator, &vm_module);
+
 	if(!iree_status_is_ok(status)){
 		iree_status_fprint(stderr, status);
 		return false; // failed to load bytecode module
@@ -91,7 +95,7 @@ bool iree_runtime_setup(BelaContext* context, void* userData){
 		return false; // failed to load bytecode module
 	}
 	iree_runtime_call_initialize_by_name(
-		session, iree_make_cstring_view("module.forward"), &module_call);
+		session, iree_make_cstring_view("linear.run"), &module_call);
 
 	if(!iree_status_is_ok(status)){
 		iree_status_fprint(stderr, status);

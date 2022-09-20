@@ -59,9 +59,10 @@ set(_NAME "bela-iree-runtime")
 add_executable(${_NAME} "")
 target_sources(${_NAME}
   PRIVATE
+    "module.c"
     "main.cpp"
     "render.c"
-    "module.c"
+    
 )
 
 add_compile_options(-march=armv7-a -mtune=cortex-a8 -mfloat-abi=hard -mfpu=neon -Wno-psabi)
