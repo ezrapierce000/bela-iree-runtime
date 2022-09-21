@@ -59,9 +59,9 @@ set(_NAME "bela-iree-runtime")
 add_executable(${_NAME} "")
 target_sources(${_NAME}
   PRIVATE
+    "render.c"
     "module.c"
     "main.cpp"
-    "render.c"
     
 )
 
@@ -73,7 +73,7 @@ set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "bela-iree-runtime")
 target_include_directories(${_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
-target_include_directories(${_NAME} PRIVATE /sysroot/root/Bela /sysroot/root/Bela/include)
+target_include_directories(${_NAME} PRIVATE /sysroot/root/Bela /sysroot/root/Bela/include /sysroot/usr/xenomai/include)
 target_include_directories(${_NAME} PUBLIC /workspace/iree/)
 
 target_link_libraries(${_NAME}
