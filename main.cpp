@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Initialise the PRU audio device
-	if(Bela_initAudio(settings, 0, 44100, 4.5) != 0) {
+	if(Bela_initAudio(settings, 0, 44100, 6) != 0) {
 		Bela_InitSettings_free(settings);
 		fprintf(stderr,"Error: unable to initialise audio\n");
 		return 1;

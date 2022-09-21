@@ -5,8 +5,9 @@
 #include "iree/modules/hal/module.h"
 #include "iree/vm/api.h"
 #include "iree/vm/bytecode_module.h"
-
-#define EMITC_IMPLEMENTATION
+#include "cobalt/uapi/thread.h"
+#include "cobalt/sys/cobalt.h"
+#define EMITC_IMPLEMENTATION 1
 
 #define M_PI 3.14159
 
@@ -31,6 +32,7 @@ float gInverseSampleRate;
 
 AuxiliaryTask gIREETask;
 void bela_iree_invoke();
+
 
 // extern iree_status_t module_create(iree_vm_instance_t*, iree_allocator_t, iree_vm_module_t**);
 extern iree_status_t linear_create(iree_vm_instance_t* v1, iree_allocator_t v2, iree_vm_module_t** v3);
@@ -185,6 +187,7 @@ void test_sine(BelaContext* context){
 
 void iree_runtime_render(BelaContext* context, void* userData){
 	static bool input_buffer_toggle = false; // denotes which buffer is being processed and which is being filled
+	struct cobalt_threadstat stat;
 	static uint32_t buffer_byte_write_count = 0;
 	iree_status_t status;
 	test_sine(context);
@@ -213,10 +216,17 @@ void iree_runtime_render(BelaContext* context, void* userData){
 	status = iree_hal_buffer_map_read(iree_hal_buffer_view_buffer(output_hal_buffer_view),
 		buffer_byte_write_count, context->audioOut, data_transfer_size);
 	buffer_byte_write_count += data_transfer_size;
+
+	//cobalt_thread_stat(get_thread_pid(), &stat);
+	//rt_printf("main: xtime: %d, timeout: %d, msw:%d, csw:%d, xsc:%d, status:%d, pf:%d\n", stat.xtime, stat.timeout, stat.msw, stat.csw, stat.xsc, stat.status, stat.pf);
 }
 
 void bela_iree_invoke(){
+	struct cobalt_threadstat stat;
+	
 	iree_runtime_call_invoke(&module_call, /*flags*/ 0);
+	//cobalt_thread_stat(get_thread_pid(), &stat);
+	//rt_printf("IREE: xtime: %d, timeout: %d, msw:%d, csw:%d, xsc:%d, status:%d, pf:%d\n", stat.xtime, stat.timeout, stat.msw, stat.csw, stat.xsc, stat.status, stat.pf);
 }
 
 void iree_runtime_cleanup(BelaContext *context, void *userData){
